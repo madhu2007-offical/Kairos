@@ -1,10 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const anthropic = process.env.ANTHROPIC_API_KEY 
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+
+const geminiAI = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null;
 
 export interface TaskPrioritizationInput {
@@ -90,6 +95,44 @@ export function parseNaturalLanguageTask(text: string): { title: string; duratio
  * Score a task using LLM (if configured) or the local heuristic engine.
  */
 export async function scoreAndPrioritizeTask(task: TaskPrioritizationInput, existingTasksCount: number = 0): Promise<TaskPrioritizationOutput> {
+  if (geminiAI) {
+    try {
+      const model = geminiAI.getGenerativeModel({ 
+        model: 'gemini-1.5-flash',
+        generationConfig: { responseMimeType: 'application/json' }
+      });
+      const prompt = `You are the intelligence layer of Kairos, an AI productivity companion. Analyze the task and return a structured JSON response containing: urgency (0.0 to 1.0), importance (0.0 to 1.0), effort (0.0 to 1.0), opportunityCost (0.0 to 1.0), priorityScore (0.0 to 1.0), and a concise, clear 1-2 sentence explanation of why this priority score was assigned. Focus on urgency vs. importance, impact on scheduling, and opportunity cost of delaying this task.
+
+      Analyze this task for prioritization:
+      Title: "${task.title}"
+      Duration: ${task.duration} minutes
+      Deadline: ${task.deadline.toISOString()}
+      Context: ${task.context}
+      Current workload (tasks pending): ${existingTasksCount}
+      
+      Format the output strictly as JSON with this schema:
+      {
+        "urgency": float,
+        "importance": float,
+        "effort": float,
+        "opportunityCost": float,
+        "priorityScore": float,
+        "explanation": "string"
+      }`;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}') + 1;
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        const jsonStr = text.substring(jsonStart, jsonEnd);
+        return JSON.parse(jsonStr) as TaskPrioritizationOutput;
+      }
+    } catch (e) {
+      console.warn("Gemini API prioritization failed, trying Anthropic fallback:", e);
+    }
+  }
+
   if (anthropic) {
     try {
       const response = await anthropic.messages.create({
@@ -187,6 +230,31 @@ export async function scoreAndPrioritizeTask(task: TaskPrioritizationInput, exis
  * Break down goals into milestones/actionable subtasks
  */
 export async function decomposeGoal(title: string, targetDate: Date): Promise<Array<{ title: string; duration: number; daysOffset: number }>> {
+  if (geminiAI) {
+    try {
+      const model = geminiAI.getGenerativeModel({ 
+        model: 'gemini-1.5-flash',
+        generationConfig: { responseMimeType: 'application/json' }
+      });
+      const prompt = `You are the goal decomposer service for Kairos. Analyze the user goal and the target date, and generate a list of actionable subtasks/milestones. For each subtask, specify: title, estimated duration in minutes, and daysOffset (how many days from today this task should be completed).
+      
+      Decompose this goal: "${title}". Target deadline: ${targetDate.toDateString()}. 
+      Generate 3 to 5 realistic step-by-step milestones leading up to this date.
+      Format the output strictly as a JSON array of objects: [{"title": "step 1", "duration": 45, "daysOffset": 1}]`;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const jsonStart = text.indexOf('[');
+      const jsonEnd = text.lastIndexOf(']') + 1;
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        const jsonStr = text.substring(jsonStart, jsonEnd);
+        return JSON.parse(jsonStr);
+      }
+    } catch (e) {
+      console.warn("Gemini API goal decomposition failed, trying Anthropic fallback:", e);
+    }
+  }
+
   if (anthropic) {
     try {
       const response = await anthropic.messages.create({
@@ -239,6 +307,23 @@ export async function decomposeGoal(title: string, targetDate: Date): Promise<Ar
 export async function generateDailyBriefing(tasks: any[], events: any[], quietHours: string): Promise<string> {
   const topTasks = tasks.filter(t => t.status !== 'COMPLETED').slice(0, 3);
   
+  if (geminiAI) {
+    try {
+      const model = geminiAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const prompt = `You are Kairos, the productivity companion. Write a warm, punchy briefing (100-150 words) to read to the user. Mention top 3 priorities, say how you cleared focus blocks, and mention any tasks or autonomous holds awaiting approval. Keep the tone calm, direct, and reassuring. Avoid corporate speak.
+      
+      Generate morning briefing based on these:
+      Top Tasks: ${topTasks.map(t => `${t.title} (Score: ${t.priorityScore.toFixed(2)})`).join(', ')}
+      Calendar status: ${events.length} events scheduled today.
+      Settings: Quiet hours are ${quietHours}`;
+
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (e) {
+      console.warn("Gemini API briefing failed, trying Anthropic fallback:", e);
+    }
+  }
+
   if (anthropic) {
     try {
       const response = await anthropic.messages.create({
