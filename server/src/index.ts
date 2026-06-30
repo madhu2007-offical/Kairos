@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import prisma from './prisma';
 import taskRoutes from './routes/tasks';
 import scheduleRoutes from './routes/schedule';
@@ -274,6 +275,15 @@ app.get('/api/cron', async (req: Request, res: Response) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Serve static assets from the compiled React app
+const staticPath = path.join(__dirname, '../../dist');
+app.use(express.static(staticPath));
+
+// Catch-all route to serve the React index.html for client routing
+app.get('*', (req: Request, res: Response) => {
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 // Server bootup logic (only run standard listener if not in Vercel serverless context)
