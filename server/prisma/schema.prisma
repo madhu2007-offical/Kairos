@@ -1,0 +1,86 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:../dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String   @id @default("user-1")
+  email            String   @unique
+  name             String
+  autonomyLevel    String   @default("DRAFT_AND_CONFIRM") // SUGGEST_ONLY, DRAFT_AND_CONFIRM, FULL_AUTONOMY
+  peakFocusStart   Int      @default(9)  // 9 AM
+  peakFocusEnd     Int      @default(12) // 12 PM
+  quietHourStart   Int      @default(21) // 9 PM
+  quietHourEnd     Int      @default(7)  // 7 AM
+  procrastinationIndex Float @default(0.2) // Procrastination factor (0-1)
+  calendarConnected Boolean @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Task {
+  id               String          @id @default(uuid())
+  title            String
+  duration         Int             // in minutes
+  deadline         DateTime
+  urgency          Float           @default(0.5) // AI-scored 0-1
+  importance       Float           @default(0.5) // AI-scored 0-1
+  effort           Float           @default(0.5) // AI-scored 0-1
+  priorityScore    Float           @default(0.5) // AI computed dynamic score
+  opportunityCost  Float           @default(0.0) // Opportunity cost score
+  explanation      String?         // AI reasoning for the score
+  status           String          @default("TODO") // TODO, IN_PROGRESS, COMPLETED, MISSED
+  context          String          @default("WORK") // WORK, PERSONAL, RECREATIONAL
+  dependencies     String?         // Comma separated task IDs or JSON array
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  scheduleBlocks   ScheduleBlock[]
+}
+
+model ScheduleBlock {
+  id        String   @id @default(uuid())
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String
+  start     DateTime
+  end       DateTime
+  type      String   @default("FOCUS") // FOCUS, MEETING, BUFFER, BREAK
+  isLocked  Boolean  @default(false)   // Drag-and-drop manual lock
+}
+
+model Goal {
+  id         String   @id @default(uuid())
+  title      String
+  targetDate DateTime
+  status     String   @default("ACTIVE") // ACTIVE, COMPLETED
+  milestones String   // JSON string representation of subtasks/milestones
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Habit {
+  id                String    @id @default(uuid())
+  name              String
+  frequency         String    @default("DAILY") // DAILY, WEEKLY
+  streak            Int       @default(0)
+  difficulty        String    @default("MEDIUM") // EASY, MEDIUM, HARD
+  lastCompletedDate DateTime?
+  history           String    @default("[]") // JSON string of timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model AutonomousAction {
+  id          String   @id @default(uuid())
+  type        String   // EMAIL_DRAFT, CALENDAR_HOLD, CHECKLIST_PREP
+  title       String   // e.g. "Draft update email for Kairos"
+  state       String   @default("PENDING") // PENDING, APPROVED, REJECTED, EXECUTED, UNDONE
+  details     String   // JSON string containing email draft, calendar times, or prep sheet
+  explanation String   // Reasoning: why the AI took this action
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

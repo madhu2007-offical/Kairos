@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-darkslate-950 text-linen-100 font-sans antialiased overflow-x-hidden selection:bg-sage-500/30 selection:text-linen-50;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif tracking-tight text-linen-50;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 18, 16, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(94, 133, 116, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(94, 133, 116, 0.6);
+}
+
+/* Premium Utility Classes */
+.glass-panel {
+  background: rgba(24, 34, 30, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 226, 211, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.glass-panel-hover {
+  @apply transition-all duration-300 ease-out;
+}
+
+.glass-panel-hover:hover {
+  background: rgba(24, 34, 30, 0.6);
+  border-color: rgba(94, 133, 116, 0.25);
+  box-shadow: 0 12px 40px 0 rgba(94, 133, 116, 0.1);
+  transform: translateY(-2px);
+}
+
+.glass-input {
+  background: rgba(7, 9, 8, 0.5);
+  border: 1px solid rgba(232, 226, 211, 0.1);
+  @apply text-linen-50 rounded-lg px-4 py-2.5 focus:outline-none focus:border-sage-500/60 focus:ring-1 focus:ring-sage-500/30 transition-all duration-200 placeholder:text-linen-600;
+}
+
+.glass-button {
+  @apply rounded-lg px-5 py-2.5 font-medium transition-all duration-200 text-sm tracking-wide flex items-center justify-center gap-2;
+}
+
+.glass-button-primary {
+  @apply glass-button bg-sage-600 hover:bg-sage-500 text-linen-50 border border-sage-400/20 shadow-lg shadow-sage-950/40 hover:shadow-sage-500/20;
+}
+
+.glass-button-secondary {
+  @apply glass-button bg-white/5 hover:bg-white/10 text-linen-200 border border-white/5 hover:border-white/10;
+}
+
+.glass-button-danger {
+  @apply glass-button bg-red-950/40 hover:bg-red-900/60 text-red-200 border border-red-900/20;
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(94, 133, 116, 0.3);
+}
+
+/* Animations and Transitions */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Priority Bubble */
+.priority-radial {
+  background: radial-gradient(circle, rgba(94, 133, 116, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+}
